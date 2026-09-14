@@ -4,217 +4,109 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Threads 乾淨連結工具</title>
-<style>
-  :root {
-    --bg: #f7f7f8;
-    --card: #ffffff;
-    --text: #1a1a1a;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-    --accent: #000000;
-    --accent-text: #ffffff;
-    --success: #16a34a;
-    --danger: #dc2626;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0f0f10;
-      --card: #1a1a1c;
-      --text: #f2f2f2;
-      --muted: #9ca3af;
-      --border: #2e2e31;
-      --accent: #ffffff;
-      --accent-text: #000000;
-      --success: #4ade80;
-      --danger: #f87171;
-    }
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 48px 16px;
-  }
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px;
-    width: 100%;
-    max-width: 560px;
-  }
-  h1 {
-    font-size: 20px;
-    margin: 0 0 4px;
-  }
-  p.desc {
-    color: var(--muted);
-    font-size: 14px;
-    margin: 0 0 24px;
-    line-height: 1.6;
-  }
-  label {
-    display: block;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-  textarea {
-    width: 100%;
-    min-height: 90px;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    resize: vertical;
-    font-family: inherit;
-  }
-  button {
-    margin-top: 12px;
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    background: var(--accent);
-    color: var(--accent-text);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  button:active { opacity: 0.8; }
-  .result {
-    margin-top: 20px;
-    display: none;
-  }
-  .result.show { display: block; }
-  .result-box {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    word-break: break-all;
-    font-size: 13px;
-  }
-  .result-box code {
-    flex: 1;
-  }
-  .copy-btn {
-    margin-top: 0;
-    width: auto;
-    padding: 6px 12px;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-  .status {
-    margin-top: 8px;
-    font-size: 13px;
-  }
-  .status.ok { color: var(--success); }
-  .status.err { color: var(--danger); }
-  .hint {
-    margin-top: 20px;
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 </head>
-<body>
-  <div class="card">
-    <h1>Threads 乾淨連結工具</h1>
-    <p class="desc">
+<body class="bg-white text-gray-900 font-sans min-h-screen flex items-start justify-center px-4 py-12">
+  <div
+    x-data="cleaner()"
+    class="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-8"
+  >
+    <h1 class="text-lg font-semibold mb-1">Threads 乾淨連結工具</h1>
+    <p class="text-sm text-gray-500 leading-relaxed mb-6">
       貼上你在瀏覽器打開分享連結後，網址列出現的完整網址（含 <code>?xmt=...</code> 追蹤碼），
       一鍵去掉追蹤碼並複製。
     </p>
 
-    <label for="input">網址</label>
-    <textarea id="input" placeholder="https://www.threads.com/@user/post/xxxxxxx?xmt=..."></textarea>
-    <button id="convert">轉換並複製</button>
+    <label for="input" class="block text-xs text-gray-500 mb-1.5">網址</label>
+    <textarea
+      id="input"
+      x-model="raw"
+      @keydown.cmd.enter="convert()"
+      @keydown.ctrl.enter="convert()"
+      placeholder="https://www.threads.com/@user/post/xxxxxxx?xmt=..."
+      class="w-full min-h-[90px] p-3 rounded-lg border border-gray-200 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gray-300"
+    ></textarea>
 
-    <div class="result" id="result">
-      <div class="result-box">
-        <code id="output"></code>
-        <button class="copy-btn" id="copyAgain">再複製一次</button>
+    <button
+      @click="convert()"
+      class="mt-3 w-full py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80"
+    >
+      轉換並複製
+    </button>
+
+    <div x-show="result" x-cloak class="mt-5">
+      <div class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 text-sm break-all">
+        <code class="flex-1" x-text="result"></code>
+        <button
+          @click="copyAgain()"
+          class="shrink-0 px-3 py-1.5 rounded-lg bg-black text-white text-xs font-semibold hover:bg-gray-800"
+        >
+          再複製一次
+        </button>
       </div>
-      <div class="status" id="status"></div>
+      <div
+        class="mt-2 text-sm"
+        :class="statusOk ? 'text-green-600' : 'text-red-600'"
+        x-text="status"
+      ></div>
     </div>
 
-    <div class="hint">
+    <div class="mt-5 text-xs text-gray-400 leading-relaxed">
       注意：這個頁面是純前端靜態頁面，無法直接解析 <code>threads.com/share/xxx</code> 短連結背後的 302
       轉址（瀏覽器安全限制 CORS）。請先在瀏覽器打開分享連結，等網址列變成完整網址後，再把該網址貼過來。
     </div>
   </div>
 
 <script>
-  const input = document.getElementById('input');
-  const convertBtn = document.getElementById('convert');
-  const result = document.getElementById('result');
-  const output = document.getElementById('output');
-  const status = document.getElementById('status');
-  const copyAgain = document.getElementById('copyAgain');
+  function cleaner() {
+    return {
+      raw: '',
+      result: '',
+      status: '',
+      statusOk: false,
 
-  function clean(url) {
-    try {
-      const u = new URL(url.trim());
-      u.search = '';
-      u.hash = '';
-      return u.toString();
-    } catch (e) {
-      return null;
-    }
+      clean(url) {
+        try {
+          const u = new URL(url.trim());
+          u.search = '';
+          u.hash = '';
+          return u.toString();
+        } catch (e) {
+          return null;
+        }
+      },
+
+      async copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      },
+
+      async convert() {
+        const cleaned = this.clean(this.raw);
+        if (!cleaned) {
+          this.result = '';
+          this.status = '看起來不是有效的網址，請確認貼上的內容。';
+          this.statusOk = false;
+          return;
+        }
+        this.result = cleaned;
+        const ok = await this.copyText(cleaned);
+        this.status = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
+        this.statusOk = ok;
+      },
+
+      async copyAgain() {
+        const ok = await this.copyText(this.result);
+        this.status = ok ? '已複製到剪貼簿！' : '複製失敗，請手動複製。';
+        this.statusOk = ok;
+      },
+    };
   }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  convertBtn.addEventListener('click', async () => {
-    const raw = input.value;
-    const cleaned = clean(raw);
-
-    if (!cleaned) {
-      result.classList.add('show');
-      status.textContent = '看起來不是有效的網址，請確認貼上的內容。';
-      status.className = 'status err';
-      output.textContent = '';
-      return;
-    }
-
-    output.textContent = cleaned;
-    result.classList.add('show');
-
-    const ok = await copyText(cleaned);
-    status.textContent = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
-    status.className = ok ? 'status ok' : 'status err';
-  });
-
-  copyAgain.addEventListener('click', async () => {
-    const ok = await copyText(output.textContent);
-    status.textContent = ok ? '已複製到剪貼簿！' : '複製失敗，請手動複製。';
-    status.className = ok ? 'status ok' : 'status err';
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      convertBtn.click();
-    }
-  });
 </script>
 </body>
 </html>
