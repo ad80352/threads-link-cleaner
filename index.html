@@ -14,8 +14,8 @@
   >
     <h1 class="text-lg font-semibold mb-1">Threads 乾淨連結工具</h1>
     <p class="text-sm text-gray-500 leading-relaxed mb-6">
-      貼上你在瀏覽器打開分享連結後，網址列出現的完整網址（含 <code>?xmt=...</code> 追蹤碼），
-      一鍵去掉追蹤碼並複製。
+      貼上 Threads 的 <code>/share/xxx</code> 分享連結，或瀏覽器打開後網址列的完整網址，
+      一鍵去掉帳號追蹤碼並複製。
     </p>
 
     <label for="input" class="block text-xs text-gray-500 mb-1.5">網址</label>
@@ -24,15 +24,16 @@
       x-model="raw"
       @keydown.cmd.enter="convert()"
       @keydown.ctrl.enter="convert()"
-      placeholder="https://www.threads.com/@user/post/xxxxxxx?xmt=..."
+      placeholder="https://www.threads.com/share/xxxxxxx/ 或 https://www.threads.com/@user/post/xxxxxxx?xmt=..."
       class="w-full min-h-[90px] p-3 rounded-lg border border-gray-200 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gray-300"
     ></textarea>
 
     <button
       @click="convert()"
-      class="mt-3 w-full py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80"
+      :disabled="loading"
+      class="mt-3 w-full py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80 disabled:opacity-50"
     >
-      轉換並複製
+      <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
     </button>
 
     <div x-show="result" x-cloak class="mt-5">
@@ -53,18 +54,30 @@
     </div>
 
     <div class="mt-5 text-xs text-gray-400 leading-relaxed">
-      注意：這個頁面是純前端靜態頁面，無法直接解析 <code>threads.com/share/xxx</code> 短連結背後的 302
-      轉址（瀏覽器安全限制 CORS）。請先在瀏覽器打開分享連結，等網址列變成完整網址後，再把該網址貼過來。
+      <code>/share/xxx</code> 短連結會經由一個小型 Cloudflare Worker 解析成完整網址，
+      不需要在瀏覽器打開過一次；也因此不會受到 Threads 前端有時把網址列洗掉的問題影響。
     </div>
   </div>
 
 <script>
+  const RESOLVER_URL = 'https://threads-link-resolver.ad80352.workers.dev';
+
   function cleaner() {
     return {
       raw: '',
       result: '',
       status: '',
       statusOk: false,
+      loading: false,
+
+      isShareLink(url) {
+        try {
+          const u = new URL(url.trim());
+          return /threads\.(com|net)$/.test(u.hostname) && u.pathname.startsWith('/share/');
+        } catch (e) {
+          return false;
+        }
+      },
 
       clean(url) {
         try {
@@ -77,6 +90,15 @@
         }
       },
 
+      async resolveShareLink(url) {
+        const resp = await fetch(`${RESOLVER_URL}?url=${encodeURIComponent(url.trim())}`);
+        const data = await resp.json();
+        if (!resp.ok || !data.clean) {
+          throw new Error(data.error || '解析失敗');
+        }
+        return data.clean;
+      },
+
       async copyText(text) {
         try {
           await navigator.clipboard.writeText(text);
@@ -87,7 +109,28 @@
       },
 
       async convert() {
-        const cleaned = this.clean(this.raw);
+        const raw = this.raw;
+
+        if (this.isShareLink(raw)) {
+          this.loading = true;
+          this.result = '';
+          this.status = '';
+          try {
+            const cleaned = await this.resolveShareLink(raw);
+            this.result = cleaned;
+            const ok = await this.copyText(cleaned);
+            this.status = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
+            this.statusOk = ok;
+          } catch (e) {
+            this.status = `解析短連結失敗：${e.message}`;
+            this.statusOk = false;
+          } finally {
+            this.loading = false;
+          }
+          return;
+        }
+
+        const cleaned = this.clean(raw);
         if (!cleaned) {
           this.result = '';
           this.status = '看起來不是有效的網址，請確認貼上的內容。';
