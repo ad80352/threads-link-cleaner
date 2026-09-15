@@ -37,6 +37,8 @@
       <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
     </button>
 
+    <div x-show="errorMsg" x-cloak class="mt-2 text-xs text-red-600" x-text="errorMsg"></div>
+
     <div x-show="result" x-cloak class="mt-5">
       <div class="flex items-center flex-wrap gap-2 mb-1.5">
         <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
@@ -78,11 +80,16 @@
       status: '',
       statusOk: false,
       loading: false,
+      errorMsg: '',
+
+      isThreadsHost(hostname) {
+        return /(^|\.)threads\.(com|net)$/.test(hostname);
+      },
 
       isShareLink(url) {
         try {
           const u = new URL(url.trim());
-          return /threads\.(com|net)$/.test(u.hostname) && u.pathname.startsWith('/share/');
+          return this.isThreadsHost(u.hostname) && u.pathname.startsWith('/share/');
         } catch (e) {
           return false;
         }
@@ -120,6 +127,22 @@
 
       async convert() {
         const raw = this.raw;
+        this.errorMsg = '';
+
+        let parsed;
+        try {
+          parsed = new URL(raw.trim());
+        } catch (e) {
+          this.result = '';
+          this.errorMsg = '看起來不是有效的網址，請確認貼上的內容。';
+          return;
+        }
+
+        if (!this.isThreadsHost(parsed.hostname)) {
+          this.result = '';
+          this.errorMsg = '只接受 threads.com / threads.net 的連結。';
+          return;
+        }
 
         if (this.isShareLink(raw)) {
           this.loading = true;
@@ -133,8 +156,7 @@
             this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
             this.statusOk = ok;
           } catch (e) {
-            this.status = `解析短連結失敗：${e.message}`;
-            this.statusOk = false;
+            this.errorMsg = `解析短連結失敗：${e.message}`;
           } finally {
             this.loading = false;
           }
@@ -142,13 +164,6 @@
         }
 
         const result = this.clean(raw);
-        if (!result) {
-          this.result = '';
-          this.removedPart = '';
-          this.status = '看起來不是有效的網址，請確認貼上的內容。';
-          this.statusOk = false;
-          return;
-        }
         this.result = result.cleaned;
         this.removedPart = result.removed;
         const ok = await this.copyText(result.cleaned);
