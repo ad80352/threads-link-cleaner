@@ -23,10 +23,12 @@
     <textarea
       id="input"
       x-model="raw"
+      @input="errorMsg = ''"
       @keydown.cmd.enter="convert()"
       @keydown.ctrl.enter="convert()"
       placeholder="https://www.threads.com/share/xxxxxxx/"
-      class="w-full min-h-[90px] p-3 rounded-lg border-2 border-gray-300 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+      class="w-full min-h-[90px] p-3 rounded-lg border-2 bg-white text-sm resize-y focus:outline-none focus:ring-2"
+      :class="hasError ? 'border-red-400 focus:ring-red-500' : 'border-gray-300 focus:ring-black focus:border-black'"
     ></textarea>
 
     <button
@@ -37,7 +39,14 @@
       <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
     </button>
 
-    <div x-show="errorMsg" x-cloak class="mt-2 text-xs text-red-600" x-text="errorMsg"></div>
+    <div
+      x-show="errorMsg"
+      x-cloak
+      role="alert"
+      aria-live="polite"
+      class="mt-2 text-xs text-red-600"
+      x-text="errorMsg"
+    ></div>
 
     <div x-show="result" x-cloak class="mt-5">
       <div class="flex items-center flex-wrap gap-2 mb-1.5">
@@ -81,6 +90,10 @@
       statusOk: false,
       loading: false,
       errorMsg: '',
+
+      get hasError() {
+        return !!this.errorMsg;
+      },
 
       isThreadsHost(hostname) {
         return /(^|\.)threads\.(com|net)$/.test(hostname);
@@ -140,7 +153,7 @@
 
         if (!this.isThreadsHost(parsed.hostname)) {
           this.result = '';
-          this.errorMsg = '只接受 threads.com / threads.net 的連結。';
+          this.errorMsg = '這不是 Threads 的網址，請貼上 threads.com 的分享連結或貼文網址。';
           return;
         }
 
