@@ -38,12 +38,18 @@
     </button>
 
     <div x-show="result" x-cloak class="mt-5">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+      <div class="flex items-center flex-wrap gap-2 mb-1.5">
+        <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
           ✓ 已移除追蹤碼
         </span>
-        <span x-show="removedPart" class="text-xs text-gray-400 truncate" x-text="'刪除：' + removedPart"></span>
+        <span
+          x-show="status"
+          class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+          :class="statusOk ? 'text-green-700 bg-green-100' : 'text-amber-700 bg-amber-100'"
+          x-text="status"
+        ></span>
       </div>
+      <div x-show="removedPart" class="text-xs text-gray-400 truncate mb-1.5" x-text="'刪除：' + removedPart"></div>
       <div class="flex items-center gap-2 p-3 rounded-lg border border-green-200 bg-green-50 text-sm break-all">
         <code class="flex-1 font-mono" x-text="result"></code>
         <button
@@ -53,11 +59,6 @@
           再複製一次
         </button>
       </div>
-      <div
-        class="mt-2 text-sm"
-        :class="statusOk ? 'text-green-600' : 'text-red-600'"
-        x-text="status"
-      ></div>
     </div>
 
     <div class="mt-5 text-xs text-gray-400 leading-relaxed">
@@ -129,7 +130,7 @@
             const cleaned = await this.resolveShareLink(raw);
             this.result = cleaned;
             const ok = await this.copyText(cleaned);
-            this.status = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
+            this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
             this.statusOk = ok;
           } catch (e) {
             this.status = `解析短連結失敗：${e.message}`;
@@ -151,13 +152,13 @@
         this.result = result.cleaned;
         this.removedPart = result.removed;
         const ok = await this.copyText(result.cleaned);
-        this.status = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
+        this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
         this.statusOk = ok;
       },
 
       async copyAgain() {
         const ok = await this.copyText(this.result);
-        this.status = ok ? '已複製到剪貼簿！' : '複製失敗，請手動複製。';
+        this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
         this.statusOk = ok;
       },
     };
