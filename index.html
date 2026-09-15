@@ -13,19 +13,20 @@
     class="w-full max-w-lg bg-white border border-gray-200 rounded-2xl p-8"
   >
     <h1 class="text-lg font-semibold mb-1">Threads 乾淨連結工具</h1>
+    <p class="text-sm text-gray-500 mb-1">移除網址裡的 <code class="text-red-600 font-mono">?xmt=...</code> 追蹤碼</p>
     <p class="text-sm text-gray-500 leading-relaxed mb-6">
       貼上 Threads 的 <code>/share/xxx</code> 分享連結，或瀏覽器打開後網址列的完整網址，
       一鍵去掉帳號追蹤碼並複製。
     </p>
 
-    <label for="input" class="block text-xs text-gray-500 mb-1.5">網址</label>
+    <label for="input" class="block text-xs text-gray-700 font-medium mb-1.5">網址</label>
     <textarea
       id="input"
       x-model="raw"
       @keydown.cmd.enter="convert()"
       @keydown.ctrl.enter="convert()"
-      placeholder="https://www.threads.com/share/xxxxxxx/ 或 https://www.threads.com/@user/post/xxxxxxx?xmt=..."
-      class="w-full min-h-[90px] p-3 rounded-lg border border-gray-200 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gray-300"
+      placeholder="https://www.threads.com/@user/post/xxxxxxx?xmt=..."
+      class="w-full min-h-[90px] p-3 rounded-lg border-2 border-gray-300 bg-white text-sm resize-y focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
     ></textarea>
 
     <button
@@ -37,11 +38,17 @@
     </button>
 
     <div x-show="result" x-cloak class="mt-5">
-      <div class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 bg-gray-50 text-sm break-all">
-        <code class="flex-1" x-text="result"></code>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+          ✓ 已移除追蹤碼
+        </span>
+        <span x-show="removedPart" class="text-xs text-gray-400 truncate" x-text="'刪除：' + removedPart"></span>
+      </div>
+      <div class="flex items-center gap-2 p-3 rounded-lg border border-green-200 bg-green-50 text-sm break-all">
+        <code class="flex-1 font-mono" x-text="result"></code>
         <button
           @click="copyAgain()"
-          class="shrink-0 px-3 py-1.5 rounded-lg bg-black text-white text-xs font-semibold hover:bg-gray-800"
+          class="shrink-0 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-100"
         >
           再複製一次
         </button>
@@ -66,6 +73,7 @@
     return {
       raw: '',
       result: '',
+      removedPart: '',
       status: '',
       statusOk: false,
       loading: false,
@@ -82,9 +90,10 @@
       clean(url) {
         try {
           const u = new URL(url.trim());
+          const removed = u.search + u.hash;
           u.search = '';
           u.hash = '';
-          return u.toString();
+          return { cleaned: u.toString(), removed };
         } catch (e) {
           return null;
         }
@@ -114,6 +123,7 @@
         if (this.isShareLink(raw)) {
           this.loading = true;
           this.result = '';
+          this.removedPart = '';
           this.status = '';
           try {
             const cleaned = await this.resolveShareLink(raw);
@@ -130,15 +140,17 @@
           return;
         }
 
-        const cleaned = this.clean(raw);
-        if (!cleaned) {
+        const result = this.clean(raw);
+        if (!result) {
           this.result = '';
+          this.removedPart = '';
           this.status = '看起來不是有效的網址，請確認貼上的內容。';
           this.statusOk = false;
           return;
         }
-        this.result = cleaned;
-        const ok = await this.copyText(cleaned);
+        this.result = result.cleaned;
+        this.removedPart = result.removed;
+        const ok = await this.copyText(result.cleaned);
         this.status = ok ? '已複製到剪貼簿！' : '轉換完成，但自動複製失敗，請手動複製上面的網址。';
         this.statusOk = ok;
       },
