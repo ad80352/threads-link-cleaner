@@ -27,8 +27,13 @@
       @keydown.cmd.enter="convert()"
       @keydown.ctrl.enter="convert()"
       placeholder="https://www.threads.com/share/xxxxxxx/"
-      class="w-full min-h-[90px] p-3 rounded-lg border-2 bg-white text-sm resize-y focus:outline-none focus:ring-2"
-      :class="hasError ? 'border-red-400 focus:ring-red-500' : 'border-gray-300 focus:ring-black focus:border-black'"
+      class="w-full min-h-[90px] p-3 rounded-lg bg-white text-sm resize-y
+             transition-colors duration-150
+             focus:outline-none focus:ring-2 focus:ring-offset-1
+             focus:ring-gray-400 focus:border-gray-400"
+      :class="hasError
+        ? 'border-2 border-red-300 focus:ring-red-300 focus:border-red-400'
+        : 'border border-gray-300 focus:ring-gray-300 focus:border-gray-400'"
     ></textarea>
 
     <button
@@ -43,10 +48,11 @@
       x-show="errorMsg"
       x-cloak
       role="alert"
-      aria-live="polite"
-      class="mt-2 text-xs text-red-600"
-      x-text="errorMsg"
-    ></div>
+      class="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200"
+    >
+      <span class="text-red-500 text-sm leading-5">⚠</span>
+      <span class="text-sm text-red-700 leading-5" x-html="errorMsg"></span>
+    </div>
 
     <div x-show="result" x-cloak class="mt-5">
       <div class="flex items-center flex-wrap gap-2 mb-1.5">
@@ -147,13 +153,13 @@
           parsed = new URL(raw.trim());
         } catch (e) {
           this.result = '';
-          this.errorMsg = '看起來不是有效的網址，請確認貼上的內容。';
+          this.errorMsg = "<strong class='font-semibold'>不是有效的網址</strong>，請確認貼上的內容。";
           return;
         }
 
         if (!this.isThreadsHost(parsed.hostname)) {
           this.result = '';
-          this.errorMsg = '這不是 Threads 的網址，請貼上 threads.com 的分享連結或貼文網址。';
+          this.errorMsg = "<strong class='font-semibold'>不是 Threads 的網址</strong>，請貼上 threads.com 的分享連結或貼文網址。";
           return;
         }
 
