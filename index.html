@@ -19,48 +19,48 @@
       一鍵去掉帳號追蹤碼並複製。
     </p>
 
-    <label for="input" class="block text-xs text-gray-700 font-medium mb-1.5">網址</label>
+    <div class="flex items-center justify-between mb-1.5">
+      <label for="input" class="text-xs font-medium text-gray-700">網址</label>
+      <button
+        @click="clearAll()"
+        type="button"
+        x-show="raw"
+        x-cloak
+        class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-800"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        清除
+      </button>
+    </div>
     <textarea
       id="input"
       x-model="raw"
       @input="errorMsg = ''"
       @keydown.cmd.enter="convert()"
       @keydown.ctrl.enter="convert()"
-      placeholder="https://www.threads.com/share/xxxxxxx/"
-      class="w-full min-h-[90px] p-3 rounded-lg bg-white text-sm resize-y
-             transition-colors duration-150
-             focus:outline-none focus:ring-2 focus:ring-offset-1
-             focus:ring-gray-400 focus:border-gray-400"
+      placeholder="https://www.threads.com/@user/post/xxxxxxx?xmt=..."
+      class="w-full min-h-[90px] p-3 rounded-lg border bg-white text-sm resize-y
+             transition-colors duration-150 focus:outline-none focus:ring-2
+             focus:ring-offset-1"
       :class="hasError
-        ? 'border-2 border-red-300 focus:ring-red-300 focus:border-red-400'
-        : 'border border-gray-300 focus:ring-gray-300 focus:border-gray-400'"
+        ? 'border-red-300 focus:ring-red-300 focus:border-red-400'
+        : 'border-gray-300 focus:ring-gray-300 focus:border-gray-400'"
     ></textarea>
 
-    <div class="mt-3 flex gap-2">
-      <button
-        @click="convert()"
-        :disabled="loading"
-        class="flex-1 py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80 disabled:opacity-50"
-      >
-        <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
-      </button>
-      <button
-        @click="clearInput()"
-        type="button"
-        class="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-100"
-      >
-        清除
-      </button>
-    </div>
-
-    <div
-      x-show="errorMsg"
-      x-cloak
-      role="alert"
-      class="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200"
+    <button
+      @click="convert()"
+      :disabled="loading"
+      class="mt-5 w-full py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80 disabled:opacity-50"
     >
+      <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
+    </button>
+
+    <div x-show="errorMsg" x-cloak role="alert"
+         class="mt-5 flex items-start gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-200">
       <span class="text-red-500 text-sm leading-5">⚠</span>
-      <span class="text-sm text-red-700 leading-5" x-html="errorMsg"></span>
+      <span class="text-sm text-red-700 leading-5" x-text="errorMsg"></span>
     </div>
 
     <div x-show="result" x-cloak class="mt-5">
@@ -68,20 +68,16 @@
         <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
           ✓ 已移除追蹤碼
         </span>
-        <span
-          x-show="status"
-          class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-          :class="statusOk ? 'text-green-700 bg-green-100' : 'text-amber-700 bg-amber-100'"
-          x-text="status"
-        ></span>
+        <span x-show="status"
+              class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+              :class="statusOk ? 'text-green-700 bg-green-100' : 'text-amber-700 bg-amber-100'"
+              x-text="status"></span>
       </div>
       <div x-show="removedPart" class="text-xs text-gray-400 truncate mb-1.5" x-text="'刪除：' + removedPart"></div>
-      <div class="flex items-center gap-2 p-3 rounded-lg border border-gray-300 bg-gray-50 text-sm break-all">
-        <code class="flex-1 font-mono" x-text="result"></code>
-        <button
-          @click="copyAgain()"
-          class="shrink-0 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-100"
-        >
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-lg border border-gray-300 bg-gray-50 text-sm">
+        <code class="flex-1 font-mono text-gray-900 break-all" x-text="result"></code>
+        <button @click="copyAgain()"
+                class="self-end sm:self-auto shrink-0 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-100">
           再複製一次
         </button>
       </div>
@@ -162,13 +158,13 @@
           parsed = new URL(raw.trim());
         } catch (e) {
           this.result = '';
-          this.errorMsg = "<strong class='font-semibold'>不是有效的網址</strong>，請確認貼上的內容。";
+          this.errorMsg = '看起來不是有效的網址，請確認貼上的內容。';
           return;
         }
 
         if (!this.isThreadsHost(parsed.hostname)) {
           this.result = '';
-          this.errorMsg = "<strong class='font-semibold'>不是 Threads 的網址</strong>，請貼上 threads.com 的分享連結或貼文網址。";
+          this.errorMsg = '這不是 Threads 的網址，請貼上 threads.com 的分享連結或貼文網址。';
           return;
         }
 
@@ -205,7 +201,7 @@
         this.statusOk = ok;
       },
 
-      clearInput() {
+      clearAll() {
         this.raw = '';
         this.result = '';
         this.removedPart = '';
