@@ -16,7 +16,7 @@
     <p class="text-sm text-gray-500 mb-1">移除網址裡的 <code class="text-red-600 font-mono">?xmt=...</code> 追蹤碼</p>
     <p class="text-sm text-gray-500 leading-relaxed mb-6">
       貼上 Threads 的 <code>/share/xxx</code> 分享連結，或瀏覽器打開後網址列的完整網址，
-      一鍵去掉帳號追蹤碼並複製。
+      一鍵去掉帳號追蹤碼。
     </p>
 
     <div class="flex items-center justify-between mb-1.5">
@@ -54,7 +54,7 @@
       :disabled="loading"
       class="mt-5 w-full py-3 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-800 active:opacity-80 disabled:opacity-50"
     >
-      <span x-text="loading ? '解析中…' : '轉換並複製'"></span>
+      <span x-text="loading ? '解析中…' : '轉換'"></span>
     </button>
 
     <div x-show="errorMsg" x-cloak role="alert"
@@ -78,7 +78,7 @@
         <code class="flex-1 font-mono text-gray-900 break-all" x-text="result"></code>
         <button @click="copyAgain()"
                 class="self-end sm:self-auto shrink-0 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-100">
-          再複製一次
+          複製
         </button>
       </div>
     </div>
@@ -174,11 +174,7 @@
           this.removedPart = '';
           this.status = '';
           try {
-            const cleaned = await this.resolveShareLink(raw);
-            this.result = cleaned;
-            const ok = await this.copyText(cleaned);
-            this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
-            this.statusOk = ok;
+            this.result = await this.resolveShareLink(raw);
           } catch (e) {
             this.errorMsg = `解析短連結失敗：${e.message}`;
           } finally {
@@ -190,9 +186,7 @@
         const result = this.clean(raw);
         this.result = result.cleaned;
         this.removedPart = result.removed;
-        const ok = await this.copyText(result.cleaned);
-        this.status = ok ? '✓ 已複製到剪貼簿' : '⚠ 請手動複製';
-        this.statusOk = ok;
+        this.status = '';
       },
 
       async copyAgain() {
