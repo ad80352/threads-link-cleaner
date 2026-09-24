@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ad80352.github.io/threads-link-cleaner/sitemap.xml
